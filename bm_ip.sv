@@ -269,25 +269,25 @@ begin: W0_GRANT_REGISTERING
         end
     end
 
-always_comb
-begin
-    wr_requested_index = 0;
+    always_comb
+    begin
+        wr_requested_index = 0;
 
-    for(islv=0; islv<=NS; islv=islv+1)
-        if (wrequest_s[islv])
-            wr_requested_index= wr_requested_index | islv[LGNS-1:0];
-end
+        for(islv=0; islv<=NS; islv=islv+1)
+            if (wrequest_s[islv])
+                wr_requested_index= wr_requested_index | islv[LGNS-1:0];
+    end
 
-always @(posedge S_AXI_ACLK)
-begin
-    //tbd
-    if (!wr_stay_on_channel && wr_rqst_chnl_avlbl)
-        r_mwindex <= wr_requested_index;
-end
-assign mwindex_o = r_mwindex;
-assign mwindex   = r_mwindex;
-assign mwgrant   = mwgrant_s;
-assign wgrant    = wgrant_s;
+    always @(posedge S_AXI_ACLK)
+    begin
+        //tbd
+        if (!wr_stay_on_channel && wr_rqst_chnl_avlbl)
+            r_mwindex <= wr_requested_index;
+    end
+    assign mwindex_o = r_mwindex;
+    assign mwindex   = r_mwindex;
+    assign mwgrant   = mwgrant_s;
+    assign wgrant    = wgrant_s;
 
 end
 endgenerate
@@ -305,28 +305,6 @@ begin : W1_SLAVE_AWACCEPTS_WACCEPTS
         if ((!mwgrant_s) || (write_qos_lockout) || (wr_outstanding_maxed))
             slave_awaccepts = 1'b0;
         //No packet-acceptance unless its to the same slave - the grant is issued for
-        if (!wrequest_s[mwindex])
-            slave_awaccepts = 1'b0;
-
-        if ((!wgrant_s[NS]) && (!slave_awready[mwindex]))
-        begin
-            slave_awaccepts = 1'b0;
-
-
-generate
-begin : W1_SLAVE_AWACCEPTS_WACCEPTS
-    always_comb
-    begin
-        slave_awaccepts = 1'b1;
-
-        //accept/forward a packet without a bus grant
-        // This handles whether or not write data is still
-        // pending.
-
-        if ((!mwgrant_s) || (write_qos_lockout) || (wr_outstanding_maxed))
-            slave_awaccepts = 1'b0;
-
-        //No packet-acceptance unless its to the same slave - the grant is issued for indicated from the ...
         if (!wrequest_s[mwindex])
             slave_awaccepts = 1'b0;
 
@@ -429,7 +407,6 @@ begin : W6_WRITE_RESP_CHNL
 end
 endgenerate
 
-
 generate
 if (PARAM_LINGER == 0)
 begin : NO_LINGER
@@ -508,16 +485,6 @@ endgenerate
 //////////////////////////////
 assign m_awvalid = r_awvalid;
 
-generate
-begin : AW_CHANNEL
-
-
-
-// wrequest_s , wrequest[N], m_axi_bvalid equivalent in ordering
-endgenerate
-
-/////////////////////////////////////
-assign m_awvalid = r_awvalid;
 
 generate
 begin : AW_CHANNEL
@@ -584,7 +551,6 @@ begin : AW_CHANNEL
         })
     );
 
-    );
 
     stallbuffer #(
 
@@ -683,44 +649,13 @@ begin : R7_COUNT_PENDING_READS
     always @(posedge S_AXI_ACLK)
     if (!S_AXI_ARESETN)
         rerr_id <= 0;
-
-
-
-
-
-
-
-
-
-
-
-
-
-///////////////////////////////////////////////////////////
-// ------------------------------------------------------------
-// (Tail end of R7_COUNT_PENDING_READS visible in IMG_3479)
-// ------------------------------------------------------------
-
-end else if (m_arvalid && rrequest_s[NS] && slave_raccepts)
-begin
-    rerr_none        <= 0;
-    rerr_last        <= (m_arlen == 0);
-    rerr_outstanding <= m_arlen + 1;
-end
-
-// rerr_id is the ARID field of the currently outstanding
-// error.
-
-always @(posedge S_AXI_ACLK)
-if (!S_AXI_ARESETN)
-    rerr_id <= 0;
-else if (m_arvalid && slave_raccepts)
-begin
-    if (rrequest_s[NS])
-        rerr_id <= m_arid;
-    else
-        rerr_id <= 0;
-end
+    else if (m_arvalid && slave_raccepts)
+    begin
+        if (rrequest_s[NS])
+            rerr_id <= m_arid;
+        else
+            rerr_id <= 0;
+    end
 
 end
 endgenerate
@@ -733,8 +668,7 @@ endgenerate
 generate
 begin : R0_GRANT_CHANNEL
 
-always @(posedge S_AXI_ACLK)
-begin : READ_GRANT
+    always @(posedge S_AXI_ACLK)
     if (!S_AXI_ARESETN)
     begin
         rgrant_s  <= 0;
@@ -754,26 +688,25 @@ begin : READ_GRANT
             rgrant_s  <= 0;
         end
     end
-end
 
-always_comb
-begin
-    r_requested_index = 0;
-    for (islv=0; islv<=NS; islv=islv+1)
-        if (rrequest_s[islv])
-            r_requested_index = r_requested_index | islv[LGNS-1:0];
-end
+    always_comb
+    begin
+        r_requested_index = 0;
+        for (islv=0; islv<=NS; islv=islv+1)
+            if (rrequest_s[islv])
+                r_requested_index = r_requested_index | islv[LGNS-1:0];
+    end
+    always @(posedge S_AXI_ACLK)
+    begin
+        if (!r_stay_on_channel && rd_rqst_chnl_avlbl)
+            r_mrindex <= r_requested_index;
+    end
 
-always @(posedge S_AXI_ACLK)
-begin
-    // tbd
-    if (!r_stay_on_channel && rd_rqst_chnl_avlbl)
-        r_mrindex <= r_requested_index;
-end
 
-assign mrindex   = r_mrindex;
-assign mrindex_o = r_mrindex;
 
+
+    assign mrindex   = r_mrindex;
+    assign mrindex_o = r_mrindex;
 end
 endgenerate
 
@@ -785,36 +718,36 @@ endgenerate
 generate
 begin : R1_SLAVE_ARACCEPTS
 
-always_comb
-begin
-    r_arvalid  = dcd_arvalid && !rd_outstanding_maxed;
-    rrequest_s = 0;
-    if (!rd_outstanding_maxed)
-        rrequest_s[NS:0] = rdecode;
-end
+    always_comb
+    begin
+        r_arvalid  = dcd_arvalid && !rd_outstanding_maxed;
+        rrequest_s = 0;
+        if (!rd_outstanding_maxed)
+            rrequest_s[NS:0] = rdecode;
+    end
 
-assign rrequest_o = rrequest_s;
-assign m_arvalid  = r_arvalid;
+    assign rrequest_o = rrequest_s;
+    assign m_arvalid  = r_arvalid;
 
-always_comb
-begin
-    slave_raccepts = 1'b1;
+    always_comb
+    begin
+        slave_raccepts = 1'b1;
 
-    if ((!mrgrant_s) || (read_qos_lockout) || (rd_outstanding_maxed))
-        slave_raccepts = 1'b0;
+        if ((!mrgrant_s) || (read_qos_lockout) || (rd_outstanding_maxed))
+            slave_raccepts = 1'b0;
 
-    // verilator lint_off WIDTH
-    if (!rrequest_s[mrindex])
-        slave_raccepts = 1'b0;
-    // verilator lint_on WIDTH
+        // verilator lint_off WIDTH
+        if (!rrequest_s[mrindex])
+            slave_raccepts = 1'b0;
+        // verilator lint_on WIDTH
 
-    if ((!rgrant_s[NS]) && (!slave_arready[mrindex]))
-        slave_raccepts = 1'b0;
-    else if ((rgrant_s[NS]) && (!mrempty_s || !rerr_none || rd_stall_valid))
-        slave_raccepts = 1'b0;
-end
+        if ((!rgrant_s[NS]) && (!slave_arready[mrindex]))
+            slave_raccepts = 1'b0;
+        else if ((rgrant_s[NS]) && (!mrempty_s || !rerr_none || rd_stall_valid))
+            slave_raccepts = 1'b0;
+    end
 
-assign slave_raccepts_o = slave_raccepts;
+    assign slave_raccepts_o = slave_raccepts;
 
 end
 endgenerate
@@ -832,46 +765,46 @@ begin : R6_READ_RETURN_CHANNEL_MUX
 // response from the slave itself, or from our internally
 // generated (no-slave exists) FSM.
 
-always_comb
-    if (rgrant_s[NS])
-        rd_stall_valid = !rerr_none;
-    else
-        rd_stall_valid = mrgrant_s && m_axi_rvalid_allslv_i[mrindex];
+    always_comb
+        if (rgrant_s[NS])
+            rd_stall_valid = !rerr_none;
+        else
+            rd_stall_valid = mrgrant_s && m_axi_rvalid_allslv_i[mrindex];
 
-always_comb
-if (rgrant_s[NS])
-begin
-    l_axi_rid    = rerr_id;
-    l_axi_rdata  = 0;
-    rskd_rlast   = rerr_last;
-    l_axi_rresp  = INTERCONNECT_ERROR;
-end
-else begin
-    l_axi_rid    = m_stall.RID;
-    l_axi_rdata  = m_stall.RDATA;
-    rskd_rlast   = m_stall.RLAST;
-    l_axi_rresp  = m_stall.RRESP;
-end
+    always_comb
+        if (rgrant_s[NS])
+        begin
+            l_axi_rid    = rerr_id;
+            l_axi_rdata  = 0;
+            rskd_rlast   = rerr_last;
+            l_axi_rresp  = INTERCONNECT_ERROR;
+        end
+        else begin
+            l_axi_rid    = m_stall.RID;
+            l_axi_rdata  = m_stall.RDATA;
+            rskd_rlast   = m_stall.RLAST;
+            l_axi_rresp  = m_stall.RRESP;
+        end
+    
+    stallbuffer #(
+        .DW(NIC_ID_WIDTH+NIC_W_WD+2),
+        .PARAM_REGOUT(1)
+    ) rstall_buffer (
+        .i_clk      (S_AXI_ACLK),
+        .i_reset    (!S_AXI_ARESETN),
+        .in_valid_i (rd_stall_valid),
+        .in_rdy_o   (rd_stall_rdy),
+        .data_in    ({l_axi_rid, l_axi_rdata, rskd_rlast, l_axi_rresp}),
+        .out_valid_o(S_AXI.RVALID),
+        .out_rdy_i  (S_AXI.RREADY),
+        .data_out   ({S_AXI.RID, S_AXI.RDATA, S_AXI.RLAST, S_AXI.RRESP})
+    );
 
-// mux will be during instantiation.
+    // mux will be during instantiation.
 
 end
 endgenerate
 
-
-stallbuffer #(
-    .DW(NIC_ID_WIDTH+NIC_W_WD+2),
-    .PARAM_REGOUT(1)
-) rstall_buffer (
-    .i_clk      (S_AXI_ACLK),
-    .i_reset    (!S_AXI_ARESETN),
-    .in_valid_i (rd_stall_valid),
-    .in_rdy_o   (rd_stall_rdy),
-    .data_in    ({l_axi_rid, l_axi_rdata, rskd_rlast, l_axi_rresp}),
-    .out_valid_o(S_AXI.RVALID),
-    .out_rdy_i  (S_AXI.RREADY),
-    .data_out   ({S_AXI.RID, S_AXI.RDATA, S_AXI.RLAST, S_AXI.RRESP})
-);
 
 assign rd_stall_rdy_o = rd_stall_rdy;
 
@@ -884,33 +817,24 @@ reg linger;
 generate
 begin : R3_ARBITRATION_CONTROL
 
-always_comb
-begin
-    r_leave_channel = 0;
+    always_comb
+    begin
+        r_leave_channel = 0;
 
-    if (!m_arvalid)
-        r_leave_channel = 1;
+        if (!m_arvalid)
+            r_leave_channel = 1;
 
-    // && (!linger || requested[NM][mrindex]) - this condition might be there in future tbd
+        // && (!linger || requested[NM][mrindex]) - this condition might be there in future tbd
 
-    if (m_arvalid && !rrequest_s[mrindex])
-        // Need to leave this channel to connect
-        // to any other channel
-        r_leave_channel = 1;
+        if (m_arvalid && !rrequest_s[mrindex])
+            // Need to leave this channel to connect
+            // to any other channel
+            r_leave_channel = 1;
 
-    if (read_qos_lockout)
-        r_leave_channel = 1;
-end
+        if (read_qos_lockout)
+            r_leave_channel = 1;
+    end
 
-always_comb
-begin
-    r_stay_on_channel = |(rrequest_s[NS:0] & rgrant_s);
-    if (read_qos_lockout)
-        r_stay_on_channel = 0;
-
-// (continues beyond IMG_3486)
-
-begin : R3_ARBITRATION_CONTROL
 
     always_comb
     begin
@@ -962,7 +886,7 @@ begin : R3_ARBITRATION_CONTROL
     // or if we are requesting access to another slave. If QOS
     // lockout is enabled, then we also leave the channel if a
     // request with a higher QOS has arrived
-
+end 
 endgenerate
 
 wire logic skd_arvalid, skd_arstall;

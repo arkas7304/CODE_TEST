@@ -69,6 +69,7 @@ interface AXI4_if;
 
     // Verilator coverage_off
     input  AWLOCK,
+    
     input  AWCACHE,
     input  AWPROT,
     input  AWQOS,
